@@ -1,11 +1,12 @@
 import errno
 import os
 import shutil
+import random
 
 #PATH TO MAIN FOLDER
 base = '/Users/Retina/PycharmProjects/TrainTestVal/images/flowers/'
 
-
+# CREATE  DIRECTORIES
 def createTTVdirs(path, classes):
     #   print(f'createdir path {path}')
 
@@ -70,13 +71,18 @@ def split(dir, trainsize, testsize, valsize):
     return(int(train), int(test), int(val))
 
 
-def createTTVSets(path, trainsize, testsize):
+def createTTVSets(path, trainsize, testsize, shuffle):
 
     classdir = os.listdir(path)
+
+    if shuffle:
+        random.shuffle(classdir)
 
     trainset = classdir[:trainsize]
     testset = classdir[trainsize:trainsize + testsize]
     valset = classdir[trainsize + testsize:]
+
+
 
     return trainset, testset, valset
 
@@ -85,8 +91,6 @@ def getdirs(root, path):
     dirs = [root + i for i in path]
 
     return dirs
-
-#------------------------------------------------------------------------------------------#
 
 
 def cleanup(classname):
@@ -132,7 +136,10 @@ def movefiles(classname, trainset, testset, valset, path, copy):
                 shutil.copy(movefrom, moveto)
 
 
-def getbase(classdir, sizetrain, sizetest, sizeval, deletefolders=True, copy=False):
+#------------------------------------------------------------------------------------------#
+
+
+def splitAndMove(classdir, sizetrain, sizetest, sizeval, deletefolders=True, copy=False, shuffle=True):
 
     for path in classdir:
 
@@ -142,7 +149,7 @@ def getbase(classdir, sizetrain, sizetest, sizeval, deletefolders=True, copy=Fal
                 trainsize, testsize, valsize = split(os.listdir(path), sizetrain, sizetest, sizeval)
 
         #GET TRAIN, TEST, VAL - SET. LISTS OF ALL FILENAMES
-                trainset, testset, valset = createTTVSets(path, trainsize, testsize)
+                trainset, testset, valset = createTTVSets(path, trainsize, testsize, shuffle)
 
                 classname = os.path.basename(os.path.normpath(path))
 
@@ -155,25 +162,30 @@ def getbase(classdir, sizetrain, sizetest, sizeval, deletefolders=True, copy=Fal
                     cleanup(classname)
 
 
-def mainrun(base):
+def getClasses(base):
 
     for root, sub, _ in (os.walk(base)):
-    #        print(f'root  {root}')
-        #GET FOLDERNAME OF EACH CLASS (DONE IN ITS OWN FUNCTION TO AVOID GETTING THE NEWLY CREATED 'TRAIN, TEST, VAL' FOLDERS ADDED TO THE LIST)
-            classdir = getdirs(root, sub)
+    #GET FOLDERNAME OF EACH CLASS (DONE IN ITS OWN FUNCTION TO AVOID GETTING THE NEWLY CREATED 'TRAIN, TEST, VAL' FOLDERS ADDED TO THE LIST)
+        classdir = getdirs(root, sub)
 
-        #CREATE TRAIN, TEST & VAL FOLDERS IN EACH CLASS FOLDER
+    #CREATE TRAIN, TEST & VAL FOLDERS IN EACH CLASS FOLDER
+        createTTVdirs(base, sub)
 
-            createTTVdirs(base, sub)
+#        createClassDirs(base, classdir)
 
-    #        createClassDirs(base, classdir)
+        return classdir
 
-            return classdir
+def main():
+    #GET PATH TO EACH CLASS FOLDER
+    classdir = getClasses(base)
+
+    #DIVIDE INTO TRAIN, TEST, VAL AND MOVE TO NEW FOLDERS
+    # SET TRAINSIZE, TESTSIZE, VALSIZE,
+    # IF ORIGINAL FOLDERS SHOULD BE DELETED
+    # IF THE FILES SHOULD BE COPIED OR MOVED
+    # AND IF THE FILELIST SHOULD BE SHUFFLED BEFORE TTV SPLIT
+    splitAndMove(classdir, 0.7, 0.15, 0.15)
 
 
-#GET PATH TO EACH CLASS FOLDER
-classdir = mainrun(base)
-
-#DIVIDE INTO TRAIN, TEST, VAL AND MOVE TO NEW FOLDERS
-#SET TRAINSIZE, TESTSIZE, VALSIZE, IF ORIGINAL FOLDERS SHOULD BE DELETED, AND IF THE FILES SHOULD BE COPIED OR MOVED
-getbase(classdir, 0.7, 0.15, 0.15)
+if __name__ == '__main__':
+    main()
